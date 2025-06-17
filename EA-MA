@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Management Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for better aesthetics */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 0.75rem; /* rounded-xl */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-primary {
+            background-color: #4f46e5; /* indigo-600 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: background-color 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca; /* indigo-700 */
+        }
+        .btn-secondary {
+            background-color: #6b7280; /* gray-500 */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* gray-600 */
+        }
+        .btn-danger {
+            background-color: #dc2626; /* red-600 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            transition: background-color 0.3s ease;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c; /* red-700 */
+        }
+        .btn-edit {
+            background-color: #f59e0b; /* amber-500 */
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            transition: background-color 0.3s ease;
+        }
+        .btn-edit:hover {
+            background-color: #d97706; /* amber-600 */
+        }
+        select, input[type="text"], textarea {
+            padding: 0.5rem;
+            border-radius: 0.375rem; /* rounded-md */
+            border: 1px solid #d1d5db; /* gray-300 */
+            background-color: #fff;
+            width: 100%;
+        }
+        select {
+            appearance: none; /* Remove default arrow */
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath fill='%236B7280' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1.5em 1.5em;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            cursor: pointer;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+        /* Confirmation Modal */
+        .confirm-modal-content {
+            width: 90%;
+            max-width: 400px;
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-10">Project Management Dashboard</h1>
+
+        <!-- Ringkasan Data -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="card text-center">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Total Proyek</h2>
+                <p id="totalProjects" class="text-5xl font-bold text-indigo-600">0</p>
+            </div>
+            <div class="card text-center">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Proyek Selesai</h2>
+                <p id="completedProjects" class="text-5xl font-bold text-green-600">0</p>
+            </div>
+            <div class="card text-center">
+                <h2 class="text-xl font-semibold text-gray-700 mb-2">Proyek Berlangsung</h2>
+                <p id="inProgressProjects" class="text-5xl font-bold text-yellow-600">0</p>
+            </div>
+        </div>
+
+        <!-- Filter/Slicing Data -->
+        <div class="card flex flex-col md:flex-row items-center justify-between mb-8">
+            <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
+                <div class="w-full md:w-auto">
+                    <label for="filterProject" class="block text-sm font-medium text-gray-700 mb-1">Filter Proyek:</label>
+                    <select id="filterProject" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md shadow-sm">
+                        <option value="all">Semua Proyek</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-auto">
+                    <label for="filterTeamMember" class="block text-sm font-medium text-gray-700 mb-1">Filter Anggota Tim:</label>
+                    <select id="filterTeamMember" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md shadow-sm">
+                        <option value="all">Semua Anggota Tim</option>
+                    </select>
+                </div>
+                <div class="w-full md:w-auto">
+                    <label for="filterStatus" class="block text-sm font-medium text-gray-700 mb-1">Filter Status:</label>
+                    <select id="filterStatus" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 rounded-md shadow-sm">
+                        <option value="all">Semua Status</option>
+                        <option value="Done">Selesai</option>
+                        <option value="In Progress">Dalam Proses</option>
+                        <option value="Doom">Terkendala</option>
+                        <option value="In Pagress">Dalam Proses (typo in data)</option>
+                        <option value="In progress">Dalam Proses (typo in data)</option>
+                        <option value="Bone">Terkendala (typo in data)</option>
+                        <option value="Dow">Terkendala (typo in data)</option>
+                        <option value="Not Started">Belum Dimulai</option>
+                        <option value="Progress In">Dalam Proses (typo data 2)</option>
+                    </select>
+                </div>
+            </div>
+            <button id="resetFiltersBtn" class="btn-secondary mt-6 md:mt-0 md:ml-4 w-full md:w-auto">Reset Filter</button>
+        </div>
+
+        <!-- Tombol Tambah Data -->
+        <div class="flex justify-end mb-4">
+            <button id="addProjectBtn" class="btn-primary">Tambah Proyek Baru</button>
+        </div>
+
+        <!-- Data Lengkap Proyek -->
+        <div class="card">
+            <h2 class="text-2xl font-semibold text-gray-900 mb-4">Data Lengkap Proyek</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsibility</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time (T)</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">General Task</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task Details</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team Member</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="projectTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Data will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <p id="noDataMessage" class="text-center text-gray-500 mt-4 hidden">Tidak ada data yang ditemukan untuk filter yang dipilih.</p>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Project -->
+    <div id="projectModal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modalTitle" class="text-2xl font-semibold text-gray-900 mb-4">Tambah Proyek Baru</h2>
+            <form id="projectForm" class="space-y-4">
+                <div>
+                    <label for="responsibility" class="block text-sm font-medium text-gray-700">Responsibility:</label>
+                    <select id="responsibility" name="responsibility" class="mt-1 block w-full">
+                        <option value="Engineering Academy">Engineering Academy</option>
+                        <option value="Manufacturing Academy">Manufacturing Academy</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="project" class="block text-sm font-medium text-gray-700">Project Name / Module Name:</label>
+                    <input type="text" id="project" name="project" required class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="component" class="block text-sm font-medium text-gray-700">Component:</label>
+                    <input type="text" id="component" name="component" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="time" class="block text-sm font-medium text-gray-700">Time (T):</label>
+                    <input type="text" id="time" name="time" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="generalTask" class="block text-sm font-medium text-gray-700">General Task / Module Type:</label>
+                    <input type="text" id="generalTask" name="generalTask" class="mt-1 block w-full">
+                </div>
+                <div>
+                    <label for="taskDetails" class="block text-sm font-medium text-gray-700">Task Details:</label>
+                    <textarea id="taskDetails" name="taskDetails" rows="3" class="mt-1 block w-full"></textarea>
+                </div>
+                <div>
+                    <label for="teamMember" class="block text-sm font-medium text-gray-700">Team Member(s) (pisahkan dengan koma):</label>
+                    <input type="text" id="teamMember" name="teamMember" class="mt-1 block w-full">
+                    <p class="text-xs text-gray-500 mt-1">Contoh: Haryadi, Bayu, Syifa</p>
+                </div>
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700">Status:</label>
+                    <select id="status" name="status" class="mt-1 block w-full">
+                        <option value="In Progress">In Progress</option>
+                        <option value="Done">Done</option>
+                        <option value="Not Started">Not Started</option>
+                        <option value="Doom">Doom (Terkendala)</option>
+                        <option value="Bone">Bone (Terkendala)</option>
+                        <option value="Dow">Dow (Terkendala)</option>
+                        <option value="Progress In">Progress In (Terkendala)</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="cancelBtn" class="btn-secondary">Batal</button>
+                    <button type="submit" class="btn-primary">Simpan Proyek</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal for Delete -->
+    <div id="confirmModal" class="modal hidden">
+        <div class="modal-content confirm-modal-content">
+            <span class="close-button" id="closeConfirmModal">&times;</span>
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Konfirmasi Hapus</h2>
+            <p>Apakah Anda yakin ingin menghapus proyek ini?</p>
+            <div class="modal-footer">
+                <button type="button" id="confirmCancelBtn" class="btn-secondary">Batal</button>
+                <button type="button" id="confirmDeleteBtn" class="btn-danger">Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define the four official team members
+        const officialTeamMembers = ["Haryadi", "Bayu", "Syahdan", "Syifa"];
+        // Define the two official academies
+        const officialAcademies = ["Engineering Academy", "Manufacturing Academy"];
+
+        let currentMaxId = 0; // To ensure unique IDs
+
+        /**
+         * Helper function to generate unique IDs for new entries.
+         * @returns {string} A unique ID string.
+         */
+        function generateUniqueId() {
+            currentMaxId++;
+            return `proj_${currentMaxId}`;
+        }
+
+        /**
+         * Helper function to normalize team member names.
+         * This function maps common typos/variations to the official names.
+         * @param {string} name - The team member name to normalize.
+         * @returns {string} The normalized team member name, or the original if no match.
+         */
+        function normalizeTeamMemberName(name) {
+            const lowerName = name.toLowerCase().trim();
+            if (lowerName.includes("haryant") || lowerName.includes("hanya") || lowerName.includes("hanyati") || lowerName.includes("haryor")) {
+                return "Haryadi";
+            }
+            if (lowerName.includes("bayu")) {
+                return "Bayu";
+            }
+            if (lowerName.includes("syahdan") || lowerName.includes("syaitan") || lowerName.includes("symdan") || lowerName.includes("syahitan")) {
+                return "Syahdan";
+            }
+            if (lowerName.includes("syifa") || lowerName.includes("systa") || lowerName.includes("syrta") || lowerName.includes("sythe") || lowerName.includes("sytta")) {
+                return "Syifa";
+            }
+            return name; // Return original if no specific mapping
+        }
+
+        // Raw project data from Dashboard - Sheet3.pdf
+        const rawProjectDataPart1 = [
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acariny", component: "20", time: null, generalTask: "Comparo of zaming erst per partinpam", taskDetails: "Memanthan target finansal tetap terjaga", teamMember: "Haryant", status: "In Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acaderny", component: "Customer", time: null, generalTask: "Customer satisfadion index", taskDetails: "Pembuatan panduan pelaksanaan pisthan", teamMember: null, status: "Done"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Customer", time: null, generalTask: "Customer satisfaction", taskDetails: "Penstruatan Tips & Tricks Pengajar", teamMember: "Bayu", status: "Doom"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acadenty", component: "Customer", time: null, generalTask: "Customer satisfaction idex", taskDetails: "Revina pelaksanaan pebethan Self Lamme", teamMember: "Bayu", status: "In Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Academy Engineering", component: "Customer", time: "35", generalTask: "Programs implementations and participants", taskDetails: "Merencanalar, menyelenggarakan, dar mangevaluasi program pelatihan", teamMember: "Haryadi Bayu, Syahdan, ", status: "in Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acarany", component: "Customer", time: null, generalTask: "Leaters feetha", taskDetails: "Mengumpulkan dan menganaleader's feetback frus", teamMember: "Syaitan", status: "In Pagress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acaderny", component: "Intemal Procosse", time: "30", generalTask: "Curriculum Developmant", taskDetails: "Menyusun tuan pelatihan, struktur kurikulum, mamim timman pelatihan dari Validani dengan stalkencider", teamMember: "Haryadı Bayu", status: "Done"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "intemal Process", time: "30", generalTask: "Pengembangan Sylabus tan Modul Pelatihan", taskDetails: "Menentukan tap, mangethunghan mate menyusun prepust test, stan evakuas pelaichan", teamMember: "Bayu", status: "Doom"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acadenty", component: "mal Processes", time: "30", generalTask: "Finitsisi tan Pengujian Kurikulum", taskDetails: "Melakukan coba modul, fraksa kunkum, dan pensapan pelaksanaan peisthan", teamMember: "Bayu", status: "Bone"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Intel Processes", time: "30", generalTask: "Training Need Analysis (TNA) 20 dan 2020", taskDetails: "Manganalisis Rebutuhan pelatihan berdasarkan surve peserta untuk menentukan tak dan procitas pelatihan.", teamMember: "Hanya", status: "Done"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Intemal Processes", time: "30", generalTask: "Performance KPt Reports", taskDetails: "Mengumpollkan itata performance, menyusun laporan KPI dan menganalisis has", teamMember: "Syrta", status: "In Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Acaderny", component: "Intemal Processes", time: "30", generalTask: "Audit Extermal enemal, intamual Audit Process (support Integrated Management System", taskDetails: "Melasukan persiapan aude, memetlikasi prcees dan kepatuhan, serta menyusun hasil audi pertalk", teamMember: "Harya", status: "in Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growth", time: "15", generalTask: "Project Developin", taskDetails: "Chytal Testencal Meeting berupa video ataupun mettia tamantuk mengantisipasi peserta yang bermanshat", teamMember: "Bayu", status: "Doom"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growt", time: "15", generalTask: "Project Devettipon", taskDetails: "Panditan Pengelolaan Kelas dan Panduan Ice Breaking", teamMember: "Bayu", status: "Dow"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growli", time: "15", generalTask: "Project Development", taskDetails: "Personal statement akan dibuat iahs spesits dan berbeda di Bap modul", teamMember: "Bayu", status: "Done"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growth", time: null, generalTask: "Project Development", taskDetails: "Algmmart dan simkosa untuk modul Dasar Penataman dan Pengelolaan Data", teamMember: "Syamdan", status: "Done"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Learning and Growth", time: "10", generalTask: "Project Developmen", taskDetails: "Katalog training berai Nama, Leeming Objectives dar Syllabus", teamMember: "Syahdan", status: "In Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growth", time: "15", generalTask: "Self Development", taskDetails: "Mengikut buah training tas artemal atau kalumai", teamMember: "Bayu Syahitan, Systa", status: "In Progress"
+            },
+            {
+                responsibility: "Engineering Academy", project: "Engineering Academy", component: "Leaming and Growit", time: "15", generalTask: "Project Devempment", taskDetails: "Membantu polkanaan Cr", teamMember: "Sytta", status: "in Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Marang Academy", component: "Customer", time: "20", generalTask: "Comparison of zaming erst per partinpam", taskDetails: "Memastihan target finansialista terjaga", teamMember: "Haryant", status: "In Pagress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Academy", component: "Customer", time: "30", generalTask: "Customer satatacto", taskDetails: "Pembuatan panduan pelaksanaan pathan", teamMember: null, status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing", component: "Customer", time: null, generalTask: "Customer satisfaction inde", taskDetails: "Penstruatan Tips & Trick n Pengajar", teamMember: "Bayu", status: "Doom"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Acartemy", component: "Customer", time: null, generalTask: "Customer satisfaction index", taskDetails: "Revina pelaksanaan penathan Self Lameg", teamMember: "Bayu", status: "In Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Acatsiny", component: "Cust", time: null, generalTask: "Program implementations and participants", taskDetails: "Merencanakan menyelenggarakan dari mengevaluasi program pelatihan", teamMember: "Haryadi Bayu Dyabdan Syifa", status: "in Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Academy Mructuring", component: "Customer", time: null, generalTask: "Leaters feedhack", taskDetails: "Mengumpulan dan menganader's feedback frus", teamMember: "Syahitan", status: "In Pagress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Academy Marang", component: "Intemal Procosse", time: null, generalTask: "Cuniculum Developmant", taskDetails: "Menyusun tuan pelatihan, struktur kurikulum, mamim timman pelatihan dari Validani dengan stakehcider", teamMember: "Haryor Syandan", status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Acartemy Manufacturing", component: "Intermat Processes", time: null, generalTask: "Pengembangan Syllabus tan Modul Pelatihan", taskDetails: "Menentukan topik, mengembangkan miten menyusun preipost test dan evalue pesathan", teamMember: "Syahdan", status: "In Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Acatsiny", component: "mal Processen", time: "30", generalTask: "Finatsiani dan Pengujian Kurikulum", taskDetails: "Melakukan coba modul, finalizam kunkulum, dan pensapan pelaksanaan", teamMember: "Syahdan", status: "In Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Interual Process", time: "30", generalTask: "Training Need Analysis (TNA) 20 dan 2020", taskDetails: "Manganalisis Rebutuhan pelatihan berdasarkan avaluasi kmerja, wawancara, dan surve peserta untuk menentukan gak dan procitas pelatihan", teamMember: "Hanyati", status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Academy Mardantung", component: "Pes", time: "30", generalTask: "PertamansKPI Repons", taskDetails: "Mengumpulkan cats performance menyutun laporan KPI dan menganalisa han", teamMember: "Sythe", status: "In Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Intemal Processes", time: "30", generalTask: "Audt Extemal weermal, Intermal Audit Process (support Integrated Management System", taskDetails: "Melasukan persiapan aude, memetlikasi prcees dan kepatuhan, serta menyusun perbaikan taporan hasil auditur", teamMember: "Harya", status: "in Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Leaming and Growth", time: null, generalTask: "Project Developin", taskDetails: "Digits Technical Meeting berupa adeo ataupun mattia lain untuk mengantisipasi peserta yang terlambat", teamMember: "Bayu", status: "Doom"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Leaming and Growth", time: null, generalTask: "Project Development", taskDetails: "Panduan Pengeitiaan Kelas stan Panduan ice Breaking", teamMember: "Bayu", status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufactung Academy", component: "Leaming and Growt", time: "15", generalTask: "Project Development", taskDetails: "Personal statement akan dibuat labis spesits dan berbeda di Bap modul", teamMember: "Bayu", status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manutaduing Academy", component: "Leaming and Growth", time: null, generalTask: "Propped Development", taskDetails: "Algmmart dan simkosa untuk modul Fi Prostem Solving Tools", teamMember: "Symdan", status: "Done"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Leaming and Growth", time: "15", generalTask: "Project Deveinpont", taskDetails: "Katalog training benal Nama, Laamang Objectives dar Syllabus", teamMember: "Syandan", status: "in Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Manufacturing Academy", component: "Leaming and Growth", time: null, generalTask: "Self Development", taskDetails: "Mengikut buah training tas numai atau kalumai", teamMember: "Bayu Syahitan, Systa", status: "In Progress"
+            },
+            {
+                responsibility: "Manufacturing Academy", project: "Mructuring Academy", component: "Leaming and Growth", time: "15", generalTask: "Project Devempment", taskDetails: "Membantu polkenaan Cr", teamMember: "Sytta", status: "in Progress"
+            }
+        ];
+
+        // Raw data from Dashboard - Sheet3_2.pdf
+        const rawProjectDataPart2 = [
+            // Header: "Project", "Pelatihan/Action Plani Project Lead", "Nama Modul", "Bayu", "PIC Syahidan", "Syifa", "Status"
+            // Note: The PDF implies Bayu, Syahidan, Syifa are columns. If 'V' is present, that person is a PIC.
+            // I will parse this into a single 'teamMember' string, similar to the existing data structure.
+            // Added explicit empty strings for missing PIC columns to ensure consistent parsing
+
+            // Engineering Academy
+            { responsibility: "Engineering Academy", generalTask: "Pelatihan", project: "Dasar Pemahanian dan Pengelolaan Data", bayu: "", syahidan: "V", syifa: "", status: "Done" },
+            { responsibility: "Engineering Academy", generalTask: "Action Plan", project: "Dasar Pemahaman dan Pengelolaan Data", bayu: "", syahidan: "V", syifa: "", status: "Done" },
+            { responsibility: "Engineering Academy", generalTask: "Pelatihan", project: "Machine Element 1 (Baut & Mur Kopling & Poros Mechanical Fastener, Rivet)", bayu: "M", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Engineering Academy", generalTask: "Action Plan", project: "Machine Element 1 (Baut & Mur, Kopling & Poros Mechanical Fastener, Rivet)", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Project Lead", project: "Machine Element 1 (Baut & Mur. Kopling & Poros Mechanical Fastener. Rivet)", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Pelatihan", project: "PLC Dasar", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Engineering Academy", generalTask: "Action Plan", project: "PLC Dasar", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Project Lead", project: "PLC Dasar", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Pelatihan", project: "Listrik Desar", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Engineering Academy", generalTask: "Action Plan", project: "Listrik Desar", bayu: "V", syahidan: "", syifa: "", status: "Progress In" },
+            { responsibility: "Engineering Academy", generalTask: "Project Lead", project: "Listrik Dasar", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Pelatihan", project: "Instrumentasi Dasar", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Engineering Academy", generalTask: "Action Plan", project: "Instrumentasi Dasar", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Engineering Academy", generalTask: "Project Lead", project: "Instrumentasi Dasar", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+
+            // Manufacturing Academy
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Panerapan 5R", bayu: "", syahidan: "", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Penerapan 5R", bayu: "", syahidan: "V", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "Penerapan SR", bayu: "", syahidan: "V", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Sistem Jaminan Produk Halal", bayu: "", syahidan: "V", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Autonomous Maintenance Tools (Abnormality Centerline, CILT)", bayu: "V", syahidan: "", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Autonomous Maintenance Tools (Abnormality Centerine, CILT)", bayu: "V", syahidan: "", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "Autonomous Maintenance Tools (Abnormality Centedine, CILT)", bayu: "V", syahidan: "", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Audit Internal Terintegraal", bayu: "", syahidan: "V", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Audit Intermal Terintegrasi", bayu: "", syahidan: "V", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "FI Problem Solving Tools", bayu: "V", syahidan: "", syifa: "", status: "Done" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "FI Problem Solving Tools", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Leat", project: "Fi Problem Solving Tools", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "SHE Awareness & Risk Assessment (BSS 01)", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "SHE Awareness & Risk Assessment (BSS 01)", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "SHE Awareness & Risk Assessment (BSS 01)", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Warehouse Finished Goods", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Autonomous Maintenance Step 0-1", bayu: "V", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Autonomous Maintenance Step 0-1", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "Autonomous Maintenance Step 0-1", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Machinery Safety dan Look Out Tag Out", bayu: "", syahidan: "", syifa: "", status: "In Progress" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Machinery Safety dan Lock Out Tag Out", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "Machinery Salety dan Lock Out Tag Out", bayu: "", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Sistem Costing dan Struktur Biaya", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "Autonomous Maintenance Step 2-3", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "Autonomous Maintenance Step 2-3", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "Autonomous Maintenance Step 2-3", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "PM Step", bayu: " ", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "PM Step", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "PM Step 0", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "PM Step 1-3", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "PM Step 1-3", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "PM Step 1-3", bayu: "", syahidan: "V", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "World Class Operation (WCO) Overview", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Pelatihan", project: "PM Step 4-5", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Action Plan", project: "PM Step 4-5", bayu: "V", syahidan: "", syifa: "", status: "Not Started" },
+            { responsibility: "Manufacturing Academy", generalTask: "Project Lead", project: "PM Step 4-5", bayu: "V", syahidan: "", syifa: "", status: "Not Started" }
+        ];
+
+        /**
+         * Parses the new data format from Sheet3_2.pdf into the consistent project data structure.
+         * Assigns unique IDs and processes team members.
+         * @param {Array} dataRows - The array of objects representing rows from Sheet3_2.pdf.
+         * @returns {Array} An array of normalized project data objects.
+         */
+        function parseNewDataSheet3_2(dataRows) {
+            const parsedData = [];
+            dataRows.forEach(row => {
+                const teamMembersList = [];
+                // Check if the PIC columns have a value that indicates involvement
+                // 'V' or 'M' are common indicators from the data provided.
+                if (row.bayu && row.bayu.trim() !== '') {
+                    teamMembersList.push('Bayu');
+                }
+                if (row.syahidan && row.syahidan.trim() !== '') {
+                    teamMembersList.push('Syahdan');
+                }
+                if (row.syifa && row.syifa.trim() !== '') {
+                    teamMembersList.push('Syifa');
+                }
+
+                parsedData.push({
+                    id: generateUniqueId(),
+                    responsibility: row.responsibility,
+                    project: row.project, // This maps to "Nama Modul" from the new data
+                    component: null, // Not available in new data
+                    time: null,      // Not available in new data
+                    generalTask: row.generalTask, // This maps to "Pelatihan/Action Plani Project Lead"
+                    taskDetails: null, // Not available in new data
+                    teamMember: teamMembersList.length > 0 ? teamMembersList.map(normalizeTeamMemberName).join(', ') : null,
+                    status: row.status.trim()
+                });
+            });
+            return parsedData;
+        }
+
+        // Initialize project data with unique IDs and normalized team members
+        const initialProjectData = [
+            ...rawProjectDataPart1.map(item => ({
+                id: generateUniqueId(),
+                ...item,
+                teamMember: item.teamMember ? item.teamMember.split(',').map(name => normalizeTeamMemberName(name.trim())).join(', ') : null,
+                status: item.status ? item.status.trim() : null // Normalize status from part 1
+            })),
+            ...parseNewDataSheet3_2(rawProjectDataPart2)
+        ];
+
+        let projectData = initialProjectData; // This will be the mutable data source
+
+        const projectTableBody = document.getElementById('projectTableBody');
+        const totalProjectsElement = document.getElementById('totalProjects');
+        const completedProjectsElement = document.getElementById('completedProjects');
+        const inProgressProjectsElement = document.getElementById('inProgressProjects');
+        const filterProjectSelect = document.getElementById('filterProject');
+        const filterTeamMemberSelect = document.getElementById('filterTeamMember');
+        const filterStatusSelect = document.getElementById('filterStatus');
+        const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+        const noDataMessage = document.getElementById('noDataMessage');
+
+        // Modal Elements
+        const projectModal = document.getElementById('projectModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const projectForm = document.getElementById('projectForm');
+        const closeButton = document.querySelector('.close-button');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const addProjectBtn = document.getElementById('addProjectBtn');
+
+        // Confirmation Modal Elements
+        const confirmModal = document.getElementById('confirmModal');
+        const closeConfirmModal = document.getElementById('closeConfirmModal');
+        const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        let projectToDeleteId = null; // Store ID of project to be deleted
+
+        let filteredData = [...projectData]; // Inisialisasi dengan semua data yang sudah difilter berdasarkan akademi
+
+        /**
+         * Mengisi dropdown filter dengan nilai unik dari data proyek.
+         * Filter proyek sekarang hanya mencakup proyek di bawah "Engineering Academy" dan "Manufacturing Academy".
+         * @param {Array} data - Data proyek yang akan digunakan.
+         */
+        function populateFilters(data) {
+            // Projects are already filtered by academy in the 'projectData' array.
+            const uniqueProjects = [...new Set(data.map(item => item.project).filter(Boolean))].sort();
+            
+            // Use only the officialTeamMembers for the dropdown
+            const teamMembers = officialTeamMembers.sort();
+            // All possible statuses from both datasets, normalized for dropdown
+            const allStatuses = [
+                "Done", "In Progress", "Not Started", "Doom", "Bone", "Dow", "Progress In"
+            ];
+
+            // Isi filter Proyek
+            filterProjectSelect.innerHTML = '<option value="all">Semua Proyek</option>';
+            uniqueProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project;
+                option.textContent = project;
+                filterProjectSelect.appendChild(option);
+            });
+
+            // Isi filter Anggota Tim dengan hanya empat nama yang ditentukan
+            filterTeamMemberSelect.innerHTML = '<option value="all">Semua Anggota Tim</option>';
+            teamMembers.forEach(member => {
+                const option = document.createElement('option');
+                option.value = member;
+                option.textContent = member;
+                filterTeamMemberSelect.appendChild(option);
+            });
+
+            // Status dropdown is hardcoded to include all known and typo variations for user convenience.
+            // No changes needed here, as it's already comprehensive.
+        }
+
+        /**
+         * Merender data proyek ke dalam tabel dan memperbarui ringkasan.
+         * @param {Array} dataToRender - Data proyek yang akan dirender.
+         */
+        function renderTable(dataToRender) {
+            projectTableBody.innerHTML = ''; // Kosongkan tabel
+            if (dataToRender.length === 0) {
+                noDataMessage.classList.remove('hidden');
+                return;
+            } else {
+                noDataMessage.classList.add('hidden');
+            }
+
+            dataToRender.forEach(item => {
+                const row = document.createElement('tr');
+                row.classList.add('hover:bg-gray-100');
+                
+                const statusClass = (() => {
+                    switch (item.status) {
+                        case 'Done': return 'bg-green-100 text-green-800';
+                        case 'In Progress':
+                        case 'in Progress':
+                        case 'In Pagress':
+                        case 'In progress':
+                        case 'Progress In': return 'bg-yellow-100 text-yellow-800';
+                        case 'Doom':
+                        case 'Bone':
+                        case 'Dow': return 'bg-red-100 text-red-800';
+                        case 'Not Started': return 'bg-blue-100 text-blue-800';
+                        default: return 'bg-gray-100 text-gray-800';
+                    }
+                })();
+
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.responsibility || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.project || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.component || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.time || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${item.generalTask || '-'}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">${item.taskDetails || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.teamMember || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">
+                            ${item.status || '-'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="editProject('${item.id}')" class="btn-edit mr-2">Edit</button>
+                        <button onclick="showDeleteConfirm('${item.id}')" class="btn-danger">Hapus</button>
+                    </td>
+                `;
+                projectTableBody.appendChild(row);
+            });
+
+            // Perbarui ringkasan
+            updateSummary(dataToRender);
+        }
+
+        /**
+         * Memperbarui ringkasan data berdasarkan data yang dirender.
+         * @param {Array} data - Data yang digunakan untuk memperbarui ringkasan.
+         */
+        function updateSummary(data) {
+            totalProjectsElement.textContent = data.length;
+            const completed = data.filter(item => item.status === 'Done').length;
+            const inProgress = data.filter(item => ['In Progress', 'in Progress', 'In Pagress', 'In progress', 'Progress In'].includes(item.status)).length;
+            const notStarted = data.filter(item => item.status === 'Not Started').length; // Added not started count
+
+            completedProjectsElement.textContent = completed;
+            inProgressProjectsElement.textContent = inProgress;
+            // Optionally, you could add 'Not Started' to the dashboard summary if desired
+            // For now, it's just total, completed, in progress as per original request.
+        }
+
+        /**
+         * Menerapkan filter ke data proyek.
+         */
+        function applyFilters() {
+            const selectedProject = filterProjectSelect.value;
+            const selectedTeamMember = filterTeamMemberSelect.value;
+            const selectedStatus = filterStatusSelect.value;
+
+            filteredData = projectData.filter(item => {
+                const matchesProject = selectedProject === 'all' || item.project === selectedProject;
+                // For team member filter, check if any of the normalized team members in the item match the selectedTeamMember
+                const matchesTeamMember = selectedTeamMember === 'all' || (item.teamMember && item.teamMember.split(', ').some(member => member === selectedTeamMember));
+                const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
+
+                return matchesProject && matchesTeamMember && matchesStatus;
+            });
+
+            renderTable(filteredData);
+        }
+
+        /**
+         * Mereset semua filter ke nilai default.
+         */
+        function resetFilters() {
+            filterProjectSelect.value = 'all';
+            filterTeamMemberSelect.value = 'all';
+            filterStatusSelect.value = 'all';
+            applyFilters(); // Terapkan filter setelah reset
+        }
+
+        /**
+         * Membuka modal untuk menambah atau mengedit proyek.
+         * @param {string} mode - 'add' atau 'edit'.
+         * @param {object} project - Objek proyek jika mode 'edit'.
+         */
+        function openModal(mode, project = {}) {
+            projectForm.reset(); // Clear previous form data
+            projectModal.dataset.mode = mode; // Set mode for form submission handling
+
+            if (mode === 'add') {
+                modalTitle.textContent = 'Tambah Proyek Baru';
+                projectModal.dataset.editId = ''; // Clear edit ID
+            } else if (mode === 'edit') {
+                modalTitle.textContent = 'Edit Proyek';
+                projectModal.dataset.editId = project.id; // Store ID for editing
+
+                // Pre-fill form with project data
+                document.getElementById('responsibility').value = project.responsibility || '';
+                document.getElementById('project').value = project.project || '';
+                document.getElementById('component').value = project.component || '';
+                document.getElementById('time').value = project.time || '';
+                document.getElementById('generalTask').value = project.generalTask || '';
+                document.getElementById('taskDetails').value = project.taskDetails || '';
+                document.getElementById('teamMember').value = project.teamMember || '';
+                document.getElementById('status').value = project.status || '';
+            }
+            projectModal.classList.remove('hidden');
+        }
+
+        /**
+         * Menutup modal.
+         */
+        function closeModal() {
+            projectModal.classList.add('hidden');
+        }
+
+        /**
+         * Menampilkan modal konfirmasi hapus.
+         * @param {string} id - ID proyek yang akan dihapus.
+         */
+        function showDeleteConfirm(id) {
+            projectToDeleteId = id;
+            confirmModal.classList.remove('hidden');
+        }
+
+        /**
+         * Menutup modal konfirmasi hapus.
+         */
+        function closeDeleteConfirm() {
+            projectToDeleteId = null;
+            confirmModal.classList.add('hidden');
+        }
+
+        /**
+         * Menambah atau memperbarui proyek ke dalam data.
+         * @param {Event} event - Objek event submit form.
+         */
+        function saveProject(event) {
+            event.preventDefault(); // Mencegah reload halaman
+            const formData = new FormData(projectForm);
+            const newProject = {};
+            for (const [key, value] of formData.entries()) {
+                newProject[key] = value.trim() === '' ? null : value.trim();
+            }
+
+            // Normalize team members input during save
+            if (newProject.teamMember) {
+                newProject.teamMember = newProject.teamMember.split(',').map(name => normalizeTeamMemberName(name.trim())).filter(Boolean).join(', ');
+            } else {
+                newProject.teamMember = null;
+            }
+
+            const mode = projectModal.dataset.mode;
+            const editId = projectModal.dataset.editId;
+
+            if (mode === 'add') {
+                newProject.id = generateUniqueId();
+                projectData.push(newProject);
+            } else if (mode === 'edit') {
+                const index = projectData.findIndex(p => p.id === editId);
+                if (index !== -1) {
+                    projectData[index] = { ...projectData[index], ...newProject, id: editId }; // Ensure ID is preserved
+                }
+            }
+
+            closeModal();
+            populateFilters(projectData); // Re-populate filters as new projects/team members might be added
+            applyFilters(); // Re-render table with updated data
+        }
+
+        /**
+         * Fungsi yang dipanggil saat tombol edit diklik.
+         * @param {string} id - ID proyek yang akan diedit.
+         */
+        window.editProject = function(id) {
+            const project = projectData.find(p => p.id === id);
+            if (project) {
+                openModal('edit', project);
+            }
+        };
+
+        /**
+         * Menghapus proyek dari data.
+         */
+        function deleteProject() {
+            if (projectToDeleteId) {
+                projectData = projectData.filter(p => p.id !== projectToDeleteId);
+                closeDeleteConfirm();
+                populateFilters(projectData); // Re-populate filters as projects are removed
+                applyFilters(); // Re-render table with updated data
+            }
+        }
+
+        // Event Listeners
+        filterProjectSelect.addEventListener('change', applyFilters);
+        filterTeamMemberSelect.addEventListener('change', applyFilters);
+        filterStatusSelect.addEventListener('change', applyFilters);
+        resetFiltersBtn.addEventListener('click', resetFilters);
+        addProjectBtn.addEventListener('click', () => openModal('add'));
+        closeButton.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        projectForm.addEventListener('submit', saveProject);
+        closeConfirmModal.addEventListener('click', closeDeleteConfirm);
+        confirmCancelBtn.addEventListener('click', closeDeleteConfirm);
+        confirmDeleteBtn.addEventListener('click', deleteProject);
+
+        // Inisialisasi dashboard saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters(projectData);
+            applyFilters(); // Apply filters at start to show only relevant academy data initially
+        });
+    </script>
+</body>
+</html>
